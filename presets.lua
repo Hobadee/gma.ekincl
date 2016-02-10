@@ -70,3 +70,4 @@ gma.ekincl.presets.getTypeNumber = function (pname)
 				   ["Video"] = 9};
 	return names[pname];
 end
+
