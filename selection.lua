@@ -3,7 +3,7 @@
 --@author Eric Kincl
 
 --Don't find the selection of more than this...
-hard_limit=20
+hard_limit=1000
 
 gma.ekincl={}
 gma.ekincl.selection={}
@@ -38,6 +38,9 @@ gma.ekincl.selection.getSelection = function ()
 	g2="Group "..g2;
 	g3="Group "..g3;
 	
+	local nameOld=nil;
+	local lastType=nil;
+	
 	--Store current selection to Group 1&3
 	
 	gma.cmd("Store "..g1);
@@ -46,76 +49,84 @@ gma.ekincl.selection.getSelection = function ()
 	local i=0;
 	while i < hard_limit do  --Flow:
 		gma.cmd("SelFix "..g1);  --Select Group1
-debug("Selecting "..g1);
-
-		local handleG1 = gsg.handle(g1);  --Get the handle of the g1.  (To detect finish)
-		name = gsg.name(handleG1);
-		name = gma.ekincl.global.strSplit(name);
-		
-		gma.show.getobj.compare(handleG1new, handleG1old) --Compare the handle this loop to last...
-		
-debug("Name:"..name[1]);
-		if name[1] == "Group" or name[1] == "Dim" then  --If the name starts with "Group", we aren't on the last item yet.
-debug("Next");
-			gma.cmd("Next");  --NEXT to get single fixture
-		end
-		
+		gma.cmd("Next");  --NEXT to get single fixture
 		gma.cmd("Store "..g2.." /nc /o");  --Store to Group2
-debug("Storing Group 2 "..g2);
 		
 		local handleG2 = gsg.handle(g2);  --Get the handle of the individual device's group
+		
 		if handleG2 == nil then  
-			break;  --If the handle doesn't exist, the group was never created.  Something likely went wrong.  Exit.
+			return nil;  --If the handle doesn't exist, the group was never created.  Something likely went wrong.  Exit.
 		end
 		
 		local name = gsg.label(handleG2);	--Extract name from Group2 and add to return table.
-		if name == "Empty" then
-			break;  --If name=="Empty" or nil then we are done - clean up.
-			--
+		if name == "Empty" or name == nil then
+			return nil;  --If name=="Empty" or nil then something went wrong.  Exit.
 		end
-debug("Group 2's name: "..name);
+		
+		if name == nameOld then  --Check if we have "next"ed off the final unit and are looping continuously.
+			--We have gotten to the end and stored an incorrect unit.
+			--Remove the last stored unit, "prev", and store current.
+			if lastType == "Dim" then
+				dimnum=dimnum-1;
+				dim[dimnum]=nil;  --Remove last entered dimmer item.
+			elseif lastType == "Fix" then
+				fixnum=fixnum-1;
+				fix[fixnum]=nil;  --Remove the last entered fixture item.
+			else
+				return nil;  --No fixtures added somehow.  Error.
+			end
+			break;
+		end
+		nameOld = name;
 		
 		name=gma.ekincl.global.strSplit(name);
 		if name[1] == "Dim" then
-debug("Found Dim "..name[2]);
+			lastType="Dim";
 			dim[dimnum] = name[2];
 			dimnum=dimnum+1;
 		else
+			lastType="Fix";
 			fix[fixnum] = name[2];
 			fixnum=fixnum+1;
 		end
 		
-		--Following command is a LOT cleaner.  It *SHOULD* work.  It works from the command line.  It does not work from LUA.  :-(
-		--gma.cmd("ClearAll");  --If we don't clear first it will delete the entire g1
-		gma.cmd("ClearSelection");  --Does this work instead of ClearAll?
+		gma.cmd("ClearSelection");
 		gma.cmd("Delete "..g1.." Selection "..g2);  --Remove Group2 from Group1 (Delete Group2 fixture from Group1)
 		gma.cmd("Delete "..g2); --Delete g2 when we are done with it.
-		
-		
-		--We have a problem here... When using "Next" on the final item, it will actually advance to the next actual fixture rather than staying inside the group.
-		--This leads to an infinite loop of never adding the final fixture but rather adding infinite of the fixture after the final one.
-		--Possible solutions:
-		--1. Check for 2 duplicate fixtures in a row, delete them both, then don't next for the final pass.
-		--2. The name of "g1" auto-changes when it only has 1 member remaining
-		
 		
 		i=i+1;  --Repeat...
 	end
 	
-	--  Cleanup
+	--  Cleanup/Final Store
+	gma.cmd("Delete "..g2); --Delete g2
+	gma.cmd("Previous");  --PREVIOUS to get the original fixture
+	gma.cmd("Store "..g2.." /nc /o");  --Store to Group2
+
+	local handleG2 = gsg.handle(g2);  --Get the handle of the individual device's group
+	
+	if handleG2 == nil then  
+		return nil;  --If the handle doesn't exist, the group was never created.  Something likely went wrong.  Exit.
+	end
+	
+	local name = gsg.label(handleG2);	--Extract name from Group2 and add to return table.
+	if name == "Empty" or name == nil then
+		return nil;  --If name=="Empty" or nil then something went wrong.  Exit.
+	end
+	
+	name=gma.ekincl.global.strSplit(name);
+	if name[1] == "Dim" then
+		lastType="Dim";
+		dim[dimnum] = name[2];
+	else
+		lastType="Fix";
+		fix[fixnum] = name[2];
+	end
 	
 	-- Compile return table.
 	ret["dim"]=dim;
 	ret["fix"]=fix;
 	
-	gma.echo("Dims:");
-	for i,v in ipairs(dim) do
-		gma.echo("i:"..i.." v:"..v);
-	end
-	
-	gma.cmd(g3);  --Select Group3
-gma.echo("About to delete groups... Check them now!");
-gma.sleep(10);
+	gma.cmd(g3);  --Revert original selection: Select Group3
 	gma.cmd("Delete "..g1.." "..g2.." "..g3);  --Delete Group 1,2,3
 	
 	return ret;  --Return table
