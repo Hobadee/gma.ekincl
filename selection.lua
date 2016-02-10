@@ -131,9 +131,3 @@ gma.ekincl.selection.getSelection = function ()
 	
 	return ret;  --Return table
 end
-
-
-function debug(msg)
-	gma.echo(msg);
-	gma.sleep(1);
-end
