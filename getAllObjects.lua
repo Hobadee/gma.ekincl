@@ -1,6 +1,8 @@
 ---Script to dump all GMA objects to a file.
 --@module net.kincl.eric.grandma.tests.getAllObjects
 --@author Eric Kincl
+--@copyright 2020
+--@license GNU GPL V2 http://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html
 --@release 1.2
 
 
@@ -21,9 +23,12 @@ fp=nil
 ---Entry-Point function.
 function main()
   gma.echo("Dumping objects...");
+  pb=gma.gui.progress.start("Dumping Objects");
+  gma.gui.progress.setrange(pb,0,searchSize);
   fp=logSetup();
   local i=0;
   while i<searchSize do
+    gma.gui.progress.set(pb,i);
     local handle=gma.show.getobj.handle(i)
     gma.echo("Searching ",i);
     if handle~= nil then
@@ -32,6 +37,7 @@ function main()
     i=i+1;
   end
   logDestruct();
+  gma.gui.progress.stop(pb);
   gma.echo("Dump Complete!");
 end
 
