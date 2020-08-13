@@ -3,7 +3,7 @@
 --@author Eric Kincl
 --@copyright 2020
 --@license GNU GPL V2 http://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html
---@release 1.2
+--@release 1.3
 
 
 ---Some default settings
@@ -12,7 +12,7 @@
 logfile="MAObjects.log";
 
 --Log DMX/Patch by default?  (Warning - this takes a LONG time and LOTS of space!)
---Not implemented yet: logdmx=false
+logdmx=false
 
 -- Global the FilePointer.  Yes this is bad.  No I don't care right now.
 fp=nil
@@ -31,7 +31,7 @@ function main()
   gma.echo("Dumping objects...");
   
   -- Initialize a progress bar
-  pb=gma.gui.progress.start("Dumping Objects");
+  local pb=gma.gui.progress.start("Dumping Objects");
   gma.gui.progress.setrange(pb,0,searchSize);
   
   -- Setup the file pointer
@@ -93,17 +93,22 @@ function getAllObjects(handle,breadcrumb)
   echoAllProperties(handle);
 
   if amount>0 then
+    local pb=gma.gui.progress.start("Scanning: "..breadcrumb);
+    gma.gui.progress.setrange(pb,0,amount);
+    
     local i=0;
     while i<amount do
+      gma.gui.progress.set(pb,i);
       local ch_handle=gsg.child(handle,i);
       if ch_handle~=nil then
-        --Don't log all the DMX universes/channels
-        if gsg.class(ch_handle)~="CMD_DMX_UNIVERSE" then
+        --Don't log all the DMX universes/channels unless explicitly asked
+        if gsg.class(ch_handle)~="CMD_DMX_UNIVERSE" or logdmx == true then
           getAllObjects(ch_handle,breadcrumb);
         end
       end
       i=i+1;
     end
+    gma.gui.progress.stop(pb);
   end
 
   log("\n\n");
