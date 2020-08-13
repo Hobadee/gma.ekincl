@@ -1,8 +1,6 @@
 ---Script to dump all GMA objects to a file.
 --@module net.kincl.eric.grandma.tests.getAllObjects
 --@author Eric Kincl
---@copyright 2020
---@license GNU GPL V2 http://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html
 --@release 1.2
 
 
