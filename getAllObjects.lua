@@ -11,7 +11,7 @@ logfile="ma.log"
 
 --How many parent objects should we search for?
 --There only apear to be ~40 parent objects to access, but knock yourself out!
-searchSize=gma.show.getobj.amount(1)
+searchSize=gma.show.getobj.amount(1)+1
 
 
 -- Global the FilePointer.  Yes this is bad.  No I don't care.
