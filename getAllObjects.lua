@@ -6,41 +6,63 @@
 --@release 1.2
 
 
---Logfile Location
---WARNING: This will overwrite any file existing here without asking!
---logfile="/Users/erick/Desktop/ma.log"
+---Some default settings
+
+--Default logfile Location
 logfile="MAObjects.log";
 
---How many parent objects should we search for?
---There only apear to be ~40 parent objects to access, but knock yourself out!
-searchSize=gma.show.getobj.amount(1)+1
+--Log DMX/Patch by default?  (Warning - this takes a LONG time and LOTS of space!)
+--Not implemented yet: logdmx=false
 
-
--- Global the FilePointer.  Yes this is bad.  No I don't care.
+-- Global the FilePointer.  Yes this is bad.  No I don't care right now.
 fp=nil
 
 
 ---Entry-Point function.
 function main()
+  
+  --How many parent objects should we search for?
+  --There only apear to be ~40 parent objects to access, but knock yourself out!
+  searchSize=gma.show.getobj.amount(1)+1
+  
+  -- Prompt user for the output file location
   logfile=gma.textinput("Output Filename",logfile);
+  
   gma.echo("Dumping objects...");
+  
+  -- Initialize a progress bar
   pb=gma.gui.progress.start("Dumping Objects");
   gma.gui.progress.setrange(pb,0,searchSize);
+  
+  -- Setup the file pointer
   fp=logSetup();
+  
+  -- GMA Lua doesn't appear to support for loops
   local i=0;
   while i<searchSize do
+    -- Update the progress bar with the current item
     gma.gui.progress.set(pb,i);
+    -- gma.echo("Searching ",i," of ",searchSize);
+    
+    -- Get the handle of the current object
     local handle=gma.show.getobj.handle(i)
-    gma.echo("Searching ",i);
+    
+    -- If handle is not null, scrape it.
     if handle~= nil then
       getAllObjects(handle,i);
     end
+    
     i=i+1;
   end
+  
+  -- Close file
   logDestruct();
+  
+  -- Close Progress bar, log completion
   gma.gui.progress.stop(pb);
   gma.echo("Dump Complete!");
 end
+
 
 
 function getAllObjects(handle,breadcrumb)
@@ -88,6 +110,7 @@ function getAllObjects(handle,breadcrumb)
 end
 
 
+
 function echoAllProperties(handle)
   amt=gma.show.property.amount(handle);
   if amt>0 then
@@ -102,6 +125,9 @@ function echoAllProperties(handle)
 end
 
 
+---Open our logfile for writing
+--
+--@treturn filepointer File pointer of the file we opened.
 function logSetup()
   local fp=assert(io.open(logfile, "w"));
   fp:write("Log open at ",gma.gettime());
@@ -111,22 +137,30 @@ function logSetup()
 end
 
 
+---Closes the file we have open
+--
+--This function assumes a global variable for the file called "fp"
 function logDestruct()
   fp:close();
   fp=nil;
 end
 
 
+---Write a line to the file we have open
+--
+--@tparam string string Multiple strings to be concatenated together and written to the logfile
 function log(...)
   msg=concat(...);
   fp:write(msg);
   fp:write("\n");
   fp:flush();
-  --No point in echoing - GMA log only holds about 50 of these entries at a time...
-  --gma.echo(msg);
 end
 
 
+---Concatenates multiple items together into a single string
+--
+--@tparam string Multiple items to concatenate together
+--@treturn string Single concatenated string
 function concat(...)
   local args={...}
   local msg=""
@@ -137,4 +171,5 @@ function concat(...)
 end
 
 
+-- We need to return the name of the main function to register it with GrandMA
 return main;
