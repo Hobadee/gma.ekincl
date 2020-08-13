@@ -9,7 +9,7 @@
 --Logfile Location
 --WARNING: This will overwrite any file existing here without asking!
 --logfile="/Users/erick/Desktop/ma.log"
-logfile="ma.log"
+logfile="MAObjects.log";
 
 --How many parent objects should we search for?
 --There only apear to be ~40 parent objects to access, but knock yourself out!
@@ -22,6 +22,7 @@ fp=nil
 
 ---Entry-Point function.
 function main()
+  logfile=gma.textinput("Output Filename",logfile);
   gma.echo("Dumping objects...");
   pb=gma.gui.progress.start("Dumping Objects");
   gma.gui.progress.setrange(pb,0,searchSize);
